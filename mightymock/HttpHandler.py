@@ -338,7 +338,7 @@ class SearchRequest(object):
                 return '{"status":"ok", "filename":%s}' % result
             else:
                 mock_logger = MockGlobals.get_mocklogger()
-                mock_logger.exception("template file not found. request is %s" % str(web.input()))
+                mock_logger.exception("template file not found. request is %s" % str(web.data()))
                 return '{"status":"failure","message":"template file not found"}'
         except Exception, e:
             traceback.print_exc()
