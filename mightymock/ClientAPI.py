@@ -61,7 +61,7 @@ class ClientAPI:
                     "filename": filename,
                     "number": number
                 }
-        resp = self.sendAPI(path, "POST", {}, json.dumps(body))
+        resp = self.sendAPI(path, "POST", body = json.dumps(body))
         return True if resp == '{"status":"ok"}' else False
     
     def ResetName(self, path="/set/reset_name"):
@@ -71,12 +71,12 @@ class ClientAPI:
     def SearchRequest(self, request, path="/search/request"):
         body = {
                     "method": request.method,
-                    "requestheaders": request.headers,
-                    "requestbody": request.body,
+                    "requestheaders": request.requestheaders,
+                    "requestbody": request.requestbody,
                     "path": request.path,
                     "parameters": request.parameters
                 }
-        resp = self.sendAPI(path, "POST", {}, json.dumps(body))
+        resp = self.sendAPI(path, "POST", body = json.dumps(body))
         if resp.startswith('{"status":"ok",'):
             data = Utils.get_dict_from_json(resp)
             return data["filename"]
@@ -86,8 +86,8 @@ class ClientAPI:
     def SetResponseOnce(self, request, path="/set/response_once"):
         body = {
                     "method": request.method,
-                    "requestheaders": request.headers,
-                    "requestbody": request.body,
+                    "requestheaders": request.requestheaders,
+                    "requestbody": request.requestbody,
                     "path": request.path,
                     "parameters": request.parameters,
                     "status":request.status,
@@ -96,14 +96,14 @@ class ClientAPI:
                 }
         if request.filename:
             body["filename"] = request.filename
-        resp = self.sendAPI(path, "POST", {}, json.dumps(body))
+        resp = self.sendAPI(path, "POST", body = json.dumps(body))
         return True if resp == '{"status":"ok"}' else False
     
     def SetResponseCommon(self, request, path="/set/response_common"):
         body = {
                     "method": request.method,
-                    "requestheaders": request.headers,
-                    "requestbody": request.body,
+                    "requestheaders": request.requestheaders,
+                    "requestbody": request.requestbody,
                     "path": request.path,
                     "parameters": request.parameters,
                     "status":request.status,
@@ -111,5 +111,7 @@ class ClientAPI:
                     "responsebody":request.responsebody,
                     "number":request.number
                 }
-        resp = self.sendAPI(path, "POST", {}, json.dumps(body))
+        if request.filename:
+            body["filename"] = request.filename
+        resp = self.sendAPI(path, "POST", body = json.dumps(body))
         return True if resp == '{"status":"ok"}' else False
