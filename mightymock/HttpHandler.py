@@ -321,7 +321,7 @@ class SearchRequest(object):
             data = Utils.get_dict_from_json(web.data())
             headers = {}
             for header in data["requestheaders"]:
-                headers[header.upper()] = data[header]
+                headers[header.upper()] = data["requestheaders"][header]
             headers = MockServer.filter_headers(headers)
             
             self.request = {
