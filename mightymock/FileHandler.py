@@ -50,7 +50,7 @@ response = %s
                         body = self.__recover_format(module.request["body"]["data"], module.request["body"]["type"])
                         parameters = module.request["parameters"]
                         key_content = str(sorted(headers.items())) + body + str(sorted(parameters.items()))
-                        key = hashlib.sha224(key_content).hexdigest()
+                        key = hashlib.sha224(key_content.replace('\n','').replace('\r','').replace('\t','')).hexdigest()
                         realname = "%s-%s-%s.py" % (method, path.replace("/","-").replace(".","_"), key[-5:])
                     else:
                         realname = "%s-%s.py" % (method, path.replace("/","-").replace(".","_"))

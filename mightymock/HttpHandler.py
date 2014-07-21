@@ -363,7 +363,7 @@ class SetResponseOnce:
                 filename = "%s-%s.py" % (data["method"], data["path"].replace("/","-").replace(".","_"))
             else:
                 key_content = str(sorted(data["requestheaders"].items())) + data["requestbody"] + str(sorted(data["parameters"].items()))
-                key = hashlib.sha224(key_content).hexdigest()
+                key = hashlib.sha224(key_content.replace('\n','').replace('\r','').replace('\t','')).hexdigest()
                 filename = "%s-%s-%s.py" % (data["method"], data["path"].replace("/","-").replace(".","_"), key[-5:])
             resp = {"status":data["status"],"headers":data["responseheaders"],"body":data["responsebody"]}
             RequestHandler.response_mapping[filename] = resp
@@ -401,7 +401,7 @@ class SetResponseCommon(object):
                     return '''{"status":"failure","message":"filename doesn't exist"}'''
             key_content = str(sorted(data["requestheaders"].items())) + data["requestbody"] + str(sorted(data["parameters"].items()))
             
-            key = hashlib.sha224(key_content).hexdigest()
+            key = hashlib.sha224(key_content.replace('\n','').replace('\r','').replace('\t','')).hexdigest()
             filename = "%s-%s-%s.py" % (data["method"], data["path"].replace("/","-").replace(".","_"), key[-5:]) 
             if os.path.isfile(os.path.join(MockServer.api_folder, filename)):
                 MockServer.set_response(self.request, filename)
@@ -419,7 +419,7 @@ class SetResponseCommon(object):
                         filename = "%s-%s.py" % (data["method"], data["path"].replace("/","-").replace(".","_"))
                     else:
                         key_content = str(sorted(data["requestheaders"].items())) + data["requestbody"] + str(sorted(data["parameters"].items()))
-                        key = hashlib.sha224(key_content).hexdigest()
+                        key = hashlib.sha224(key_content.replace('\n','').replace('\r','').replace('\t','')).hexdigest()
                         filename = "%s-%s-%s.py" % (data["method"], data["path"].replace("/","-").replace(".","_"), key[-5:])
                     MockServer.set_response(self.request, filename, data["mode"])
                     return '{"status":"ok"}'
