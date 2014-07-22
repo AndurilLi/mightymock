@@ -3,7 +3,7 @@ Created on Jul 7, 2014
 
 @author: pli
 '''
-import os, sys, stat, shutil, errno, json, traceback, ConfigParser, hashlib
+import os, sys, stat, shutil, errno, json, traceback, ConfigParser
 
 def handle_readonly(func, path, exc):
     '''Callable function for removing readonly access'''
@@ -98,11 +98,3 @@ def read_config(config_file):
     else:
         print "Set config file to %s" % config_file
     return cfg
-
-def get_relaxname(request):
-    return "%s-%s.py" % (request ['method'], request['path'].replace("/","-").replace(".","_"))
-
-def get_strictname(request):
-    key_content = str(sorted(request['requestheaders'].items())) + request['requestbody'] + str(sorted(request['parameters'].items()))
-    key = hashlib.sha224(key_content).hexdigest() # .replace('\n','').replace('\r','').replace('\t','')
-    return "%s-%s-%s.py" % (request ['method'], request['path'].replace("/","-").replace(".","_"), key[-5:])

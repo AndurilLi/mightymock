@@ -7,7 +7,6 @@ import os, traceback, copy, shutil
 import json, base64
 import importlib
 import MockGlobals
-import Utils
 
 class FileHandler:
     
@@ -38,6 +37,7 @@ response = %s
     
     def reset_name(self):
         try:
+            from MockServer import MockServer
             filelist = os.listdir(self.folderpath)
             for filename in filelist:
                 if filename != "__init__.py" and filename.endswith(".py"):
@@ -51,9 +51,9 @@ response = %s
                         request["requestheaders"] = self.__recover_format(module.request["headers"]["data"], module.request["headers"]["type"])
                         request["requestbody"] = self.__recover_format(module.request["body"]["data"], module.request["body"]["type"])
                         request["parameters"] = module.request["parameters"]
-                        realname = Utils.get_strictname(request)
+                        realname = MockServer.get_strictname(request)
                     else:
-                        realname = Utils.get_relaxname(request)
+                        realname = MockServer.get_relaxname(request)
                     if filename != realname:
                         oldpath = os.path.join(self.folderpath, filename)
                         shutil.copy(oldpath, oldpath+".bak")

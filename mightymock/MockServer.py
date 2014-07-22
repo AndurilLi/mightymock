@@ -202,12 +202,24 @@ class MockServer:
                 cls.omit_headers.append(key.strip().upper())
     
     @classmethod
-    def filter_headers(cls, headers):
+    def filter_headers(cls, request):
         for header in cls.omit_headers:
-            if header in headers:
-                del headers[header]
-        return headers
+            if header in request["requestheaders"]:
+                del request["requestheaders"][header]
+        return request
     
     @classmethod
     def reset_name(cls):
         cls.filehandler.reset_name()
+        
+    @staticmethod
+    def get_relaxname(request):
+        return "%s-%s.py" % (request ['method'], request['path'].replace("/","-").replace(".","_"))
+    
+    @classmethod
+    def get_strictname(cls, request):
+        import hashlib, copy
+        filter_request = cls.filter_headers(copy.deepcopy(request))
+        key_content = str(sorted(filter_request['requestheaders'].items())) + filter_request['requestbody'] + str(sorted(filter_request['parameters'].items()))
+        key = hashlib.sha224(key_content).hexdigest() # .replace('\n','').replace('\r','').replace('\t','')
+        return "%s-%s-%s.py" % (filter_request ['method'], filter_request['path'].replace("/","-").replace(".","_"), key[-5:])

@@ -60,8 +60,7 @@ class RequestHandler:
                 headers[real_key] = value.replace(MockServer.mock_address, MockServer.server)
             elif key.startswith("CONTENT_"):
                 real_key = key.replace("_", "-")
-                headers[real_key] = value.replace(MockServer.mock_address, MockServer.server)
-        headers = MockServer.filter_headers(headers)
+                headers[real_key] = value.replace(MockServer.mock_address, MockServer.server)        
         headers = dict((k.encode('utf-8'),v.encode('utf-8')) for k,v in headers.items())
         return headers
                 
@@ -170,8 +169,8 @@ class RequestHandler:
         return filename
     
     def _process_response(self):
-        self.strictname = Utils.get_strictname(self.request)
-        self.relaxname = Utils.get_relaxname(self.request)
+        self.strictname = MockServer.get_strictname(self.request)
+        self.relaxname = MockServer.get_relaxname(self.request)
         if MockServer.mode == "mock":
             filename = self._search_mapping()
             if not filename:
@@ -274,13 +273,14 @@ class SetMode(object):
         '''
         set mode or global mode 
         '''
+        mock_logger = MockGlobals.get_mocklogger()
         try:
             data = web.input()       
             MockServer.set_mode(data.mode)
+            mock_logger.info("Set mode to %s" % data.mode)
             return '{"status":"ok"}'
         except Exception, e:
             traceback.print_exc()
-            mock_logger = MockGlobals.get_mocklogger()
             mock_logger.exception("general server error: %s" % str(e))
             return '{"status":"failure","message":"general server error: %s"}' % str(e)
 
@@ -338,8 +338,8 @@ class SearchRequest(object):
                                 "parameters": data["parameters"],
 
                             }
-            self.strictname = Utils.get_strictname(self.request)
-            self.relaxname = Utils.get_relaxname(self.request)
+            self.strictname = MockServer.get_strictname(self.request)
+            self.relaxname = MockServer.get_relaxname(self.request)
             result = MockServer.search_request(self.strictname, self.relaxname)
             del self.request
             if result:
@@ -368,9 +368,9 @@ class SetResponseOnce:
                 return '{"status":"ok"}'
             assert data.has_key("mode") and RequestMode.is_valid(data["mode"])
             if data["mode"] == RequestMode.relax:
-                filename = Utils.get_relaxname(data)
+                filename = MockServer.get_relaxname(data)
             else:
-                filename = Utils.get_strictname(data)
+                filename = MockServer.get_strictname(data)
             resp = {"status":data["status"],"headers":data["responseheaders"],"body":data["responsebody"]}
             RequestHandler.response_mapping[filename] = resp
             return '{"status":"ok"}'
@@ -405,8 +405,8 @@ class SetResponseCommon(object):
                     return '{"status":"ok","message":"new response added"}'
                 else:
                     return '''{"status":"failure","message":"filename doesn't exist"}'''
-            self.strictname = Utils.get_strictname(data)
-            self.relaxname = Utils.get_relaxname(data)
+            self.strictname = MockServer.get_strictname(data)
+            self.relaxname = MockServer.get_relaxname(data)
             filename = MockServer.search_request(self.strictname, self.relaxname)
             if filename:
                 MockServer.set_response(self.request, filename)
