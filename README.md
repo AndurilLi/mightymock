@@ -4,10 +4,13 @@ A mock server implemented in python, based on web.py
 ```
 >>python setup.py install
 ```
+On Mac OS X, this python script will install mocksetup, mockstart, mockmodify tools in /usr/local/bin.
+
 ##Create a project
 ```
 >>mocksetup mockproject 
 ```
+
 ##Launch 
 ```
 >>mockstart
