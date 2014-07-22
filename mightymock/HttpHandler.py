@@ -164,7 +164,7 @@ class RequestHandler:
     def _process_response(self):
         if MockServer.mode == "mock":
             key_content = str(sorted(self.request['requestheaders'].items())) + self.request['requestbody'] + str(sorted(self.request['parameters'].items()))
-            key = hashlib.sha224(key_content).hexdigest()
+            key = hashlib.sha224(key_content.replace('\n','').replace('\r','').replace('\t','')).hexdigest()
             filename = "%s-%s-%s.py" % (self.request ['method'], self.request['path'].replace("/","-").replace(".","_"), key[-5:])
             if filename in RequestHandler.response_mapping:
                 self._pop_resp_mapping(filename)
