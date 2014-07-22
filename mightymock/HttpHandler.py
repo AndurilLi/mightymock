@@ -62,6 +62,7 @@ class RequestHandler:
                 real_key = key.replace("_", "-")
                 headers[real_key] = value.replace(MockServer.mock_address, MockServer.server)
         headers = MockServer.filter_headers(headers)
+        headers = dict((k.encode('utf-8'),v.encode('utf-8')) for k,v in headers.items())
         return headers
                 
     def _get_date(self):
@@ -120,13 +121,12 @@ class RequestHandler:
 #             if self.request["requestheaders"]["CONNECTION"].lower() == "keep-alive":
 #                 if self.request["responseheaders"].has_key("Connection"):
 #                     del self.request["responseheaders"]["Connection"]
-                    
+        
         try:
             requester = copy.deepcopy(opener)
             resp, content = requester.request(server+self.request["url"], self.request["method"],
-                                         headers = self.request["requestheaders"],
-                                         body = self.request["requestbody"]                            
-                                         )
+                                              headers = self.request["requestheaders"],
+                                              body = self.request["requestbody"])
         except Exception, e:
             traceback.print_exc()
             self.request["status"] = "500 Internal Server Error"
@@ -198,15 +198,16 @@ class RequestHandler:
             
             #capture request
             self.request = {
-                                "url": web.ctx.fullpath,
-                                "method": web.ctx.method,
+                                "url": web.ctx.fullpath.encode('utf-8'),
+                                "method": web.ctx.method.encode('utf-8'),
                                 "requestheaders": self._parse_reqheaders(),
                                 "requestbody": web.data(),
-                                "path": web.ctx.path,
+                                "path": web.ctx.path.encode('utf-8'),
                                 "parameters": self._parse_parameters(),
                                 "remote_address":":".join([web.ctx.env["REMOTE_ADDR"],web.ctx.env["REMOTE_PORT"]]), 
                                 "request_filename":""
                             }
+            self.request["requestbody"] = self.request["requestbody"] if not isinstance(self.request["requestbody"], unicode) else self.request["requestbody"].encode('utf-8')
             
             #adjust request for special format
             if self.request["requestheaders"].has_key("CONTENT-TYPE"):
