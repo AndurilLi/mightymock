@@ -22,7 +22,7 @@ setup(
         ]
     },
     license="MIT",
-    install_requires=["web.py","pyOpenSSL"],
+    install_requires=["web.py","pyOpenSSL","httplib2"],
     description='A generic mock server with record/playback function',
     long_description="Fake http request and response",
     )
