@@ -7,7 +7,7 @@ import os, traceback, copy, shutil
 import json, base64
 import importlib
 import MockGlobals
-import hashlib
+import Utils
 
 class FileHandler:
     
@@ -42,20 +42,21 @@ response = %s
             for filename in filelist:
                 if filename != "__init__.py" and filename.endswith(".py"):
                     module = self.read_module(filename)
-                    path = module.request["path"]
-                    method = module.request["method"]
+                    request = {
+                                "path": module.request["path"],
+                                "method": module.request["method"]
+                               }
                     if module.request.has_key("headers") or module.request.has_key("body") \
                     or module.request.has_key("parameters"):
-                        headers = self.__recover_format(module.request["headers"]["data"], module.request["headers"]["type"])
-                        body = self.__recover_format(module.request["body"]["data"], module.request["body"]["type"])
-                        parameters = module.request["parameters"]
-                        key_content = str(sorted(headers.items())) + body + str(sorted(parameters.items()))
-                        key = hashlib.sha224(key_content.replace('\n','').replace('\r','').replace('\t','')).hexdigest()
-                        realname = "%s-%s-%s.py" % (method, path.replace("/","-").replace(".","_"), key[-5:])
+                        request["requestheaders"] = self.__recover_format(module.request["headers"]["data"], module.request["headers"]["type"])
+                        request["requestbody"] = self.__recover_format(module.request["body"]["data"], module.request["body"]["type"])
+                        request["parameters"] = module.request["parameters"]
+                        realname = Utils.get_strictname(request)
                     else:
-                        realname = "%s-%s.py" % (method, path.replace("/","-").replace(".","_"))
+                        realname = Utils.get_relaxname(request)
                     if filename != realname:
                         oldpath = os.path.join(self.folderpath, filename)
+                        shutil.copy(oldpath, oldpath+".bak")
                         shutil.copy(oldpath, os.path.join(self.folderpath, realname))
                         os.remove(oldpath)
                         MockGlobals.get_mocklogger().info("Change template name %s to %s for re-mapping" % (filename, realname))

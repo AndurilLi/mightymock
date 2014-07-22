@@ -1,3 +1,4 @@
 mightymock/*.pyc
 .project
 mightymock/*.pycdevproject
+mightymock/*.pydevproject

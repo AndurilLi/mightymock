@@ -3,9 +3,9 @@ Created on Jul 7, 2014
 
 @author: pli, yuliu
 '''
-import web, urllib2, urllib, time, copy, hashlib, os, json, base64
+import web, time, copy, os, json, base64
 import MockGlobals
-from MockServer import MockServer
+from MockServer import MockServer, RequestMode
 import traceback
 import Utils
 
@@ -74,6 +74,7 @@ class RequestHandler:
         opener = MockGlobals.get_opener()
         
         #urllib2 solution -- has Connection always close issue
+#         import urllib2
 #         request = urllib2.Request(url=server+self.request["url"], data=self.request["requestbody"], 
 #                                   headers=self.request["requestheaders"])
 #         request.get_method = lambda: self.request["method"]
@@ -155,40 +156,46 @@ class RequestHandler:
             headers.append(header)
         return headers         
     
-    def _pop_resp_mapping(self, filename):
-        response = RequestHandler.response_mapping.pop(filename)
-        self.request["status"] = response["status"]
-        self.request["responseheaders"] = response["headers"]
-        self.request["responsebody"] = response["body"]
+    def _search_mapping(self):
+        filename = False
+        if self.strictname in RequestHandler.response_mapping:
+            filename = copy.deepcopy(self.strictname)
+        elif self.relaxname in RequestHandler.response_mapping:
+            filename = copy.deepcopy(self.relaxname)
+        if filename:
+            response = RequestHandler.response_mapping.pop(filename)
+            self.request["status"] = response["status"]
+            self.request["responseheaders"] = response["headers"]
+            self.request["responsebody"] = response["body"]
+        return filename
     
     def _process_response(self):
+        self.strictname = Utils.get_strictname(self.request)
+        self.relaxname = Utils.get_relaxname(self.request)
         if MockServer.mode == "mock":
-            key_content = str(sorted(self.request['requestheaders'].items())) + self.request['requestbody'] + str(sorted(self.request['parameters'].items()))
-            key = hashlib.sha224(key_content.replace('\n','').replace('\r','').replace('\t','')).hexdigest()
-            filename = "%s-%s-%s.py" % (self.request ['method'], self.request['path'].replace("/","-").replace(".","_"), key[-5:])
-            if filename in RequestHandler.response_mapping:
-                self._pop_resp_mapping(filename)
-            else:
-                filename = "%s-%s.py" % (self.request ['method'], self.request['path'].replace("/","-").replace(".","_"))
-                if filename in RequestHandler.response_mapping:
-                    self._pop_resp_mapping(filename)
+            filename = self._search_mapping()
+            if not filename:
+                filename = MockServer.search_request(self.strictname, self.relaxname)
+                if filename:
+                    MockServer.get_response(self.request, filename)
+                    self.request["responseheaders"]["Date"] = self._get_date()
                 else:
-                    request_filename = MockServer.search_request(self.request)
-                    if request_filename:
-                        MockServer.get_response(self.request, request_filename)
-                        self.request["responseheaders"]["Date"] = self._get_date()
+                    filename = copy.deepcopy(self.strictname)
+                    if MockServer.auto_forward:
+                        MockGlobals.get_mocklogger().info("API %s not found, use autoforward" % filename)
+                        self._send_API()
                     else:
-                        if MockServer.auto_forward:
-                            MockGlobals.get_mocklogger().info("API %s not found, use autoforward" % request_filename)
-                            self._send_API()
-                        else:
-                            MockGlobals.get_mocklogger().info("API %s not found, return 404 since autoforward is forbidden" % request_filename)
-                            self.request["status"] = '404 Not Found'
-                            self.request["responseheaders"] = {"Date":self._get_date()}
-                            self.request["responsebody"] = '404 Not Found'
-                    self.request["request_filename"] = request_filename
+                        MockGlobals.get_mocklogger().info("API %s not found, return 404 since autoforward is forbidden" % filename)
+                        self.request["status"] = '404 Not Found'
+                        self.request["responseheaders"] = {}
+                        self.request["responsebody"] = '404 Not Found'
         else:
             self._send_API()
+            if MockServer.request_mode == RequestMode.strict:
+                filename = self.strictname
+            else:
+                filename = self.relaxname
+        self.request["request_filename"] = filename
         web.ctx.headers = copy.deepcopy(self._parse_respheaders())
         web.ctx.status = copy.deepcopy(self.request["status"])
         
@@ -202,7 +209,7 @@ class RequestHandler:
                                 "method": web.ctx.method.encode('utf-8'),
                                 "requestheaders": self._parse_reqheaders(),
                                 "requestbody": web.data(),
-                                "path": web.ctx.path.encode('utf-8'),
+                                "path": str(web.ctx.path).encode('utf-8'),
                                 "parameters": self._parse_parameters(),
                                 "remote_address":":".join([web.ctx.env["REMOTE_ADDR"],web.ctx.env["REMOTE_PORT"]]), 
                                 "request_filename":""
@@ -217,11 +224,9 @@ class RequestHandler:
                     self.request["requestheaders"]["CONTENT-TYPE"] = "multipart/form-data; boundary=----MockServerBoundary"
             if self.request["requestheaders"].has_key("CONTENT-LENGTH"):
                 del self.request["requestheaders"]["CONTENT-LENGTH"]
+            
             #process response
             self._process_response()
-            requestlog = copy.deepcopy(self.request)
-            requestlog["requestheaders"] = str(requestlog["requestheaders"])
-            requestlog["responseheaders"] = str(requestlog["responseheaders"])
             
             body = copy.deepcopy(self.request["responsebody"])
             
@@ -229,7 +234,7 @@ class RequestHandler:
             if MockServer.mode == "record":
                 if self.request["responseheaders"].has_key("Date"):
                     del self.request["responseheaders"]["Date"]
-                self.request["request_filename"] = MockServer.save_request(self.request)
+                MockServer.save_request(self.request)
                 
             self._save_log()
             
@@ -333,14 +338,17 @@ class SearchRequest(object):
                                 "parameters": data["parameters"],
 
                             }
-            result = MockServer.search_request(self.request)
+            self.strictname = Utils.get_strictname(self.request)
+            self.relaxname = Utils.get_relaxname(self.request)
+            result = MockServer.search_request(self.strictname, self.relaxname)
             del self.request
             if result:
                 return '{"status":"ok", "filename":%s}' % result
             else:
                 mock_logger = MockGlobals.get_mocklogger()
-                mock_logger.exception("template file not found. request is %s" % str(web.data()))
-                return '{"status":"failure","message":"template file not found"}'
+                mock_logger.exception("template file %s not found. request is %s" % (self.strictname, 
+                                                                                     str(web.data())))
+                return '{"status":"failure","message":"template file %s not found"}' % self.strictname
         except Exception, e:
             traceback.print_exc()
             mock_logger = MockGlobals.get_mocklogger()
@@ -358,14 +366,11 @@ class SetResponseOnce:
                 resp = {"status":data["status"],"headers":data["responseheaders"],"body":data["responsebody"]}
                 RequestHandler.response_mapping[data['filename']] = resp
                 return '{"status":"ok"}'
-            from MockServer import RequestMode
             assert data.has_key("mode") and RequestMode.is_valid(data["mode"])
             if data["mode"] == RequestMode.relax:
-                filename = "%s-%s.py" % (data["method"], data["path"].replace("/","-").replace(".","_"))
+                filename = Utils.get_relaxname(data)
             else:
-                key_content = str(sorted(data["requestheaders"].items())) + data["requestbody"] + str(sorted(data["parameters"].items()))
-                key = hashlib.sha224(key_content.replace('\n','').replace('\r','').replace('\t','')).hexdigest()
-                filename = "%s-%s-%s.py" % (data["method"], data["path"].replace("/","-").replace(".","_"), key[-5:])
+                filename = Utils.get_strictname(data)
             resp = {"status":data["status"],"headers":data["responseheaders"],"body":data["responsebody"]}
             RequestHandler.response_mapping[filename] = resp
             return '{"status":"ok"}'
@@ -397,33 +402,20 @@ class SetResponseCommon(object):
             if data.has_key("filename"):
                 if os.path.isfile(data["filename"]):
                     MockServer.set_response(self.request, data["filename"])
-                    return '{"status":"ok"}'
+                    return '{"status":"ok","message":"new response added"}'
                 else:
                     return '''{"status":"failure","message":"filename doesn't exist"}'''
-            key_content = str(sorted(data["requestheaders"].items())) + data["requestbody"] + str(sorted(data["parameters"].items()))
-            
-            key = hashlib.sha224(key_content.replace('\n','').replace('\r','').replace('\t','')).hexdigest()
-            filename = "%s-%s-%s.py" % (data["method"], data["path"].replace("/","-").replace(".","_"), key[-5:]) 
-            if os.path.isfile(os.path.join(MockServer.api_folder, filename)):
+            self.strictname = Utils.get_strictname(data)
+            self.relaxname = Utils.get_relaxname(data)
+            filename = MockServer.search_request(self.strictname, self.relaxname)
+            if filename:
                 MockServer.set_response(self.request, filename)
-                return '{"status":"ok"}'
+                return '{"status":"ok","message":"new response added"}'
             else:
-                filename = "%s-%s.py" % (data["method"], data["path"].replace("/","-").replace(".","_"))
-                if os.path.isfile(os.path.join(MockServer.api_folder, filename)):
-                    MockServer.set_response(self.request, filename)
-                    return '{"status":"ok"}'
-                else:
-                    from MockServer import RequestMode
-                    assert data.has_key("mode")
-                    assert RequestMode.is_valid(data["mode"])
-                    if data["mode"] == RequestMode.relax:
-                        filename = "%s-%s.py" % (data["method"], data["path"].replace("/","-").replace(".","_"))
-                    else:
-                        key_content = str(sorted(data["requestheaders"].items())) + data["requestbody"] + str(sorted(data["parameters"].items()))
-                        key = hashlib.sha224(key_content.replace('\n','').replace('\r','').replace('\t','')).hexdigest()
-                        filename = "%s-%s-%s.py" % (data["method"], data["path"].replace("/","-").replace(".","_"), key[-5:])
-                    MockServer.set_response(self.request, filename, data["mode"])
-                    return '{"status":"ok"}'
+                assert data.has_key("mode") and RequestMode.is_valid(data["mode"])
+                filename = self.strictname if data["mode"] != RequestMode.relax else self.relaxname
+                MockServer.set_response(self.request, filename, data["mode"])
+                return '{"status":"ok","message":"new request created"}'
         except Exception, e:
             traceback.print_exc()
             mock_logger = MockGlobals.get_mocklogger()

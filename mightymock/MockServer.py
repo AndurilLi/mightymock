@@ -3,7 +3,7 @@ Created on Jul 7, 2014
 
 @author: pli, yuliu
 '''
-import os, urllib2, hashlib
+import os
 import MockGlobals, Utils
 from FileHandler import FileHandler
 
@@ -77,6 +77,7 @@ class MockServer:
 #     @classmethod
 #     def common_opener(cls):
 #         '''urllib2 solution'''
+#         import urllib2
 #         if cls.config.has_key("proxy"):
 #             handler = urllib2.ProxyHandler({"http": cls.config["proxy"],
 #                                             "https": cls.config["proxy"]})
@@ -109,36 +110,24 @@ class MockServer:
             
     @classmethod
     def save_request(cls, request):
-        if cls.request_mode == "relax":
-            filename = "%s-%s.py" % (request ['method'], request['path'].replace("/","-").replace(".","_"))
+        if os.path.isfile(os.path.join(cls.api_folder, request["request_filename"])):
+            cls.filehandler.add_request(request, request["request_filename"], cls.request_mode)
         else:
-            key_content = str(sorted(request['requestheaders'].items())) + request['requestbody'] + str(sorted(request['parameters'].items()))
-            key = hashlib.sha224(key_content.replace('\n','').replace('\r','').replace('\t','')).hexdigest()
-            filename = "%s-%s-%s.py" % (request ['method'], request['path'].replace("/","-").replace(".","_"), key[-5:])
-        if os.path.isfile(os.path.join(cls.api_folder, filename)):
-            cls.filehandler.add_request(request, filename, cls.request_mode)
-        else:
-            cls.filehandler.create_request(request, filename, cls.request_mode)    
-        return filename
+            cls.filehandler.create_request(request, request["request_filename"], cls.request_mode)    
         
     @classmethod
-    def search_request(cls, request):
-        key_content = str(sorted(request['requestheaders'].items())) + request['requestbody'] + str(sorted(request['parameters'].items())).rstrip()
-        key = hashlib.sha224(key_content.replace('\n','').replace('\r','').replace('\t','')).hexdigest()
-        filename = "%s-%s-%s.py" % (request ['method'], request['path'].replace("/","-").replace(".","_"), key[-5:])
-        if os.path.isfile(os.path.join(cls.api_folder, filename)):
-            return filename
+    def search_request(cls, strictname, relaxname):
+        if os.path.isfile(os.path.join(cls.api_folder, strictname)):
+            return strictname
+        elif os.path.isfile(os.path.join(cls.api_folder, relaxname)):
+            return relaxname
         else:
-            filename = "%s-%s.py" % (request ['method'], request['path'].replace("/","-").replace(".","_"))
-            if os.path.isfile(os.path.join(cls.api_folder, filename)):
-                return filename
-            else:
-                return False
+            return False
 
     
     @classmethod
-    def get_response(cls, request, filename, number=None):
-        response = cls.filehandler.read_response(filename, number)
+    def get_response(cls, request, filename):
+        response = cls.filehandler.read_response(filename)
         if response:
             request["responseheaders"] = response["headers"]
             request["responsebody"] = response["body"]
