@@ -5,6 +5,7 @@ Created on Jul 3, 2014
 '''
 import sys, os
 import web
+from web.wsgiserver.ssl_pyopenssl import SSL_fileobject
 from MockConfiguration import MockConfiguration
 from HttpHandler import SetResponseOnce, SetResponseCommon, SearchRequest, SetNumber, SetDelay, SetMode, RequestHandler, ResetName
 from MockServer import MockServer
@@ -30,6 +31,7 @@ def main(argv = sys.argv):
         ) 
     mock_config = MockConfiguration()
     mock_config.setup(argv)
+    SSL_fileobject.ssl_timeout = 60
     MockServer.set_config_info()
     app = web.application(urls, globals())
     sys.argv[1:] = ["%s:%s" % (mock_config.baseurl, str(mock_config.port))]
