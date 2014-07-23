@@ -69,6 +69,7 @@ class RequestHandler:
     
     def _send_API(self):
         #TODO add credential balance
+        self._recover_form_data_boundary()
         server = MockGlobals.get_server()
         opener = MockGlobals.get_opener()
         
@@ -135,6 +136,7 @@ class RequestHandler:
                                        "X-FW-Excpetion":str(e)}
             self.request["responsebody"] = "Internal Server Error"
             return
+        self._filter_form_data_boundary()
         self.request["responsebody"] = content
         self.request["status"] = resp["status"] + " " + resp.reason
         self.request["responseheaders"] = {}
@@ -167,6 +169,20 @@ class RequestHandler:
             self.request["responseheaders"] = response["headers"]
             self.request["responsebody"] = response["body"]
         return filename
+    
+    def _filter_form_data_boundary(self):
+        #adjust request for special format
+        if self.request["requestheaders"].has_key("CONTENT-TYPE"):
+            if self.request["requestheaders"]["CONTENT-TYPE"].startswith("multipart/form-data; boundary="):
+                self.boundary = self.request["requestheaders"]["CONTENT-TYPE"].split("multipart/form-data; boundary=")[1]
+                self.request["requestbody"] = self.request["requestbody"].replace(self.boundary,"----MockServerBoundary")
+                self.request["requestheaders"]["CONTENT-TYPE"] = "multipart/form-data; boundary=----MockServerBoundary"
+    
+    def _recover_form_data_boundary(self):
+        if hasattr(self, "boundary"):
+            self.request["requestbody"] = self.request["requestbody"].replace("----MockServerBoundary", self.boundary)
+            self.request["requestheaders"]["CONTENT-TYPE"] = "multipart/form-data; boundary=%s" % self.boundary
+            
     
     def _process_response(self):
         self.strictname = MockServer.get_strictname(self.request)
@@ -214,16 +230,7 @@ class RequestHandler:
                                 "request_filename":""
                             }
             self.request["requestbody"] = self.request["requestbody"] if not isinstance(self.request["requestbody"], unicode) else self.request["requestbody"].encode('utf-8')
-            
-            #adjust request for special format
-            if self.request["requestheaders"].has_key("CONTENT-TYPE"):
-                if self.request["requestheaders"]["CONTENT-TYPE"].startswith("multipart/form-data; boundary="):
-                    boundary = self.request["requestheaders"]["CONTENT-TYPE"].split("multipart/form-data; boundary=")[1]
-                    self.request["requestbody"] = self.request["requestbody"].replace(boundary,"----MockServerBoundary")
-                    self.request["requestheaders"]["CONTENT-TYPE"] = "multipart/form-data; boundary=----MockServerBoundary"
-            if self.request["requestheaders"].has_key("CONTENT-LENGTH"):
-                del self.request["requestheaders"]["CONTENT-LENGTH"]
-            
+            self._filter_form_data_boundary()
             #process response
             self._process_response()
             
