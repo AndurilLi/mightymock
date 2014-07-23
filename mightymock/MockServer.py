@@ -195,7 +195,7 @@ class MockServer:
     
     @classmethod
     def get_omit_headers(cls):
-        cls.omit_headers = []
+        cls.omit_headers = ["CONTENT-LENGTH"]
         if cls.config.has_key("omitheaders"):
             temp = cls.config["omitheaders"].split(",")
             for key in temp:
