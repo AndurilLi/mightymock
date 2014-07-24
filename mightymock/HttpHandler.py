@@ -314,9 +314,10 @@ class SetNumber(object):
             data = Utils.get_dict_from_json(web.data())
             assert data.has_key("filename")
             assert data.has_key("number")
-            print os.path.join(MockServer.api_folder,data["filename"])
-            assert os.path.isfile(os.path.join(MockServer.api_folder,data["filename"]))
-            MockServer.number_mapping[data["filename"]] = data["number"]
+            filename=Utils.check_filename(data["filename"])
+            print os.path.join(MockServer.api_folder,filename)
+            assert os.path.isfile(os.path.join(MockServer.api_folder,filename))
+            MockServer.number_mapping[filename] = data["number"]
             return '{"status":"ok"}'
         except Exception, e:
             traceback.print_exc()
@@ -370,7 +371,7 @@ class SetResponseOnce:
             data = Utils.get_dict_from_json(web.data())
             if data.has_key("filename"):
                 resp = {"status":data["status"],"headers":data["responseheaders"],"body":data["responsebody"]}
-                MockServer.response_mapping[data['filename']] = resp
+                MockServer.response_mapping[Utils.check_filename(data['filename'])] = resp
                 return '{"status":"ok"}'
             assert data.has_key("mode") and RequestMode.is_valid(data["mode"])
             if data["mode"] == RequestMode.relax:
@@ -406,8 +407,8 @@ class SetResponseCommon(object):
                             }
             
             if data.has_key("filename"):
-                if os.path.isfile(data["filename"]):
-                    MockServer.set_response(self.request, data["filename"])
+                if os.path.isfile(Utils.check_filename(data["filename"])):
+                    MockServer.set_response(self.request, Utils.check_filename(data["filename"]))
                     return '{"status":"ok","message":"new response added"}'
                 else:
                     return '''{"status":"failure","message":"filename doesn't exist"}'''

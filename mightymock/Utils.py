@@ -98,3 +98,7 @@ def read_config(config_file):
     else:
         print "Set config file to %s" % config_file
     return cfg
+
+def check_filename(filename):
+    if not filename.endswith(".py"):
+        return filename + ".py"
