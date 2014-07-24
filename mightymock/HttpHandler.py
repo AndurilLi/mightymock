@@ -17,7 +17,6 @@ class RequestHandler:
     '''
     Generic class handling all http request
     '''
-    response_mapping = {}
     
     def GET(self):
         '''
@@ -159,12 +158,12 @@ class RequestHandler:
     
     def _search_mapping(self):
         filename = False
-        if self.strictname in RequestHandler.response_mapping:
+        if self.strictname in MockServer.response_mapping:
             filename = copy.deepcopy(self.strictname)
-        elif self.relaxname in RequestHandler.response_mapping:
+        elif self.relaxname in MockServer.response_mapping:
             filename = copy.deepcopy(self.relaxname)
         if filename:
-            response = RequestHandler.response_mapping.pop(filename)
+            response = MockServer.response_mapping.pop(filename)
             self.request["status"] = response["status"]
             self.request["responseheaders"] = response["headers"]
             self.request["responsebody"] = response["body"]
@@ -371,7 +370,7 @@ class SetResponseOnce:
             data = Utils.get_dict_from_json(web.data())
             if data.has_key("filename"):
                 resp = {"status":data["status"],"headers":data["responseheaders"],"body":data["responsebody"]}
-                RequestHandler.response_mapping[data['filename']] = resp
+                MockServer.response_mapping[data['filename']] = resp
                 return '{"status":"ok"}'
             assert data.has_key("mode") and RequestMode.is_valid(data["mode"])
             if data["mode"] == RequestMode.relax:
@@ -379,7 +378,7 @@ class SetResponseOnce:
             else:
                 filename = MockServer.get_strictname(data)
             resp = {"status":data["status"],"headers":data["responseheaders"],"body":data["responsebody"]}
-            RequestHandler.response_mapping[filename] = resp
+            MockServer.response_mapping[filename] = resp
             return '{"status":"ok"}'
         except Exception, e:
             traceback.print_exc()

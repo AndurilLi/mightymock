@@ -25,7 +25,7 @@ class RequestMode(Mode):
     relax = "relax"
 
 class MockServer:
-    url_mapping = {}
+    response_mapping = {}
     number_mapping = {}
     global_delay = 0
     delay = 0
