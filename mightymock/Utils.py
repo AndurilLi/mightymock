@@ -102,3 +102,4 @@ def read_config(config_file):
 def check_filename(filename):
     if not filename.endswith(".py"):
         return filename + ".py"
+    return filename
