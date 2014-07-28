@@ -51,6 +51,8 @@ class MockServer:
         cls.port = int(cls.config["port"])
         cls.set_mode(cls.config["mode"])
         cls.get_omit_headers()
+        cls.get_omit_parameterss()
+        cls.omit_body = True if cls.config.has_key("omitbody") and cls.config["omitbody"].lower() == True else False
         if cls.mode == "record" or cls.mode == "mock":
             api_foldername = cls.config["apitemplatepath"] if cls.config.has_key("apitemplatepath") else cls.TEMPLATE
             cls.request_mode = cls.config["request_mode"] if cls.config.has_key("request_mode") else "relax"
@@ -194,6 +196,21 @@ class MockServer:
             cls.prefix = "http://"
     
     @classmethod
+    def get_omit_parameterss(cls):
+        cls.omit_para = []
+        if cls.config.has_key("omitparameters"):
+            temp = cls.config["omitparameters"].split(",")
+            for key in temp:
+                cls.omit_para.append(key.strip())
+                
+    @classmethod
+    def filter_parameters(cls, request):
+        for para in cls.omit_para:
+            if para in request["requestparameters"]:
+                del request["requestparameters"][para]
+        return request
+    
+    @classmethod
     def get_omit_headers(cls):
         cls.omit_headers = ["CONTENT-LENGTH"]
         if cls.config.has_key("omitheaders"):
@@ -209,6 +226,12 @@ class MockServer:
         return request
     
     @classmethod
+    def filter_body(cls, request):
+        if cls.omit_body:
+            request["requestbody"] = ""
+        return request
+    
+    @classmethod
     def reset_name(cls):
         cls.filehandler.reset_name()
         
@@ -219,7 +242,10 @@ class MockServer:
     @classmethod
     def get_strictname(cls, request):
         import hashlib, copy
-        filter_request = cls.filter_headers(copy.deepcopy(request))
+        req = copy.deepcopy(request)
+        filter_request = cls.filter_headers(req)
+        filter_request = cls.filter_parameters(filter_request)
+        filter_request = cls.filter_body(filter_request)
         key_content = str(sorted(filter_request['requestheaders'].items())) + filter_request['requestbody'] + str(sorted(filter_request['parameters'].items()))
         key = hashlib.sha224(key_content).hexdigest() # .replace('\n','').replace('\r','').replace('\t','')
         return "%s-%s-%s.py" % (filter_request ['method'], filter_request['path'].replace("/","-").replace(".","_"), key[-5:])
