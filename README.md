@@ -16,7 +16,4 @@ On Mac OS X, this python script will install mocksetup, mockstart, mockmodify to
 >>mockstart
 >>mockstart -d E:\code\MightyMock\mightymock\Sample -c default.cfg
 ```
-##Detailed Usage
-https://docs.google.com/a/microstrategy.com/document/d/1ndpDvzYgl15BxcWk5c8zASdbamkGhff4x3BzSeeEeu4/edit#
-
 
