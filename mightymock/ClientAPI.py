@@ -3,7 +3,7 @@ Created on Jul 20, 2014
 
 @author: pli, yuliu
 '''
-import httplib2, traceback, json
+import httplib2, traceback, json, time
 import Utils
 
 class Request:
@@ -34,13 +34,19 @@ class ClientAPI:
         if self.baseurl.endswith("/"):
             self.baseurl = self.baseurl[:-1]
     
-    def sendAPI(self, path, method, paras="", body=""):
-        http = httplib2.Http()
-        http.disable_ssl_certificate_validation = True
+    def sendAPI(self, path, method, paras="", body="", times = 0):
+        http = httplib2.Http(disable_ssl_certificate_validation = True)
         url = self.baseurl + path + paras
         print url
         try:
             resp, content = http.request(url, method, body)
+        except httplib2.SSLHandshakeError:
+            time.sleep(3)
+            if times > 5:
+                print "Mock Server meet SSLHandShakeError"
+                traceback.print_exc()
+                return None
+            return self.sendAPI(path, method, paras, body, times+1)
         except Exception, e:
             traceback.print_exc()
             print "Mock Server response error %s" % str(e)
