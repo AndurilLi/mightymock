@@ -296,8 +296,10 @@ class SetDelay(object):
         set delay
         '''
         try:
-            data = web.input()       
-            MockServer.set_delay(data.delay)
+            data = web.input()
+            import string
+            delaytime = string.atof(data.delay)
+            MockServer.set_delay(delaytime)
             return '{"status":"ok"}'
         except Exception, e:
             traceback.print_exc()
