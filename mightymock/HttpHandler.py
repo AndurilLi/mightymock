@@ -244,7 +244,7 @@ class RequestHandler:
             self._save_log()
             
             #process delay   
-            delay = self.request["delay"] if self.request.has_key("delay") else MockGlobals.get_delay()
+            delay = self.request["delay"] if self.request.has_key("delay") else MockServer.get_delay()
             delay = delay + currenttime - time.time()
             if delay>0:
                 time.sleep(delay)
