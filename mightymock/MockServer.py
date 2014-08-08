@@ -146,7 +146,19 @@ class MockServer:
     
     @classmethod
     def set_mode(cls, mode):
-        cls.mode = mode
+        if cls.mode == MockMode.proxy and mode != MockMode.proxy:
+            cls.mode = mode
+            api_foldername = cls.config["apitemplatepath"] if cls.config.has_key("apitemplatepath") else cls.TEMPLATE
+            cls.request_mode = cls.config["request_mode"] if cls.config.has_key("request_mode") else "relax"
+            api_folderpath = os.getcwd()
+            cls.api_folder = os.path.join(api_folderpath, api_foldername)
+            MockGlobals.get_mocklogger().info("APITemplate path is set to %s" % cls.api_folder)
+            Utils.create_folder(api_folderpath, api_foldername, False)
+            cls.auto_forward = True if not cls.config.has_key("mockforward") or cls.config["mockforward"].lower() == "true" else False
+            cls.filehandler = FileHandler(cls.api_folder)
+            cls._check_config()
+        else:
+            cls.mode = mode
     
     @property
     def get_mode(self):
