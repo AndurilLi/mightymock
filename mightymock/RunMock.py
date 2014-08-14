@@ -89,5 +89,6 @@ def modify(argv = sys.argv):
             configdata.add_section(options.section)
             print "add new section %s" % options.section
             configdata.set(options.section, options.keyname, options.value)
-        configfile.write_config()
+        with open(configfile, 'wb') as config_file:
+            configdata.write(config_file)
         print "set section %s key %s with value %s successful" % (options.section, options.keyname, options.value)
