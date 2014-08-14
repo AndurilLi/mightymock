@@ -35,8 +35,12 @@ def create_folder(folderpath, foldername, refreshflag=True):
         newfolder = os.path.join(folderpath,foldername)
         if os.path.isdir(newfolder):
             if refreshflag:
-                remove_path(newfolder)
-                os.makedirs(newfolder)
+                serverlog = os.path.join(newfolder,"MockServer.log")
+                requestlog = os.path.join(newfolder, "Request.log")
+                if os.path.isfile(serverlog):
+                    os.remove(serverlog)
+                if os.path.isfile(requestlog):
+                    os.remove(requestlog)
         else:
             os.makedirs(newfolder)
     else:
