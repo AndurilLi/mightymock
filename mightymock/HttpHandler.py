@@ -3,7 +3,7 @@ Created on Jul 7, 2014
 
 @author: pli, yuliu
 '''
-import web, time, copy, os, json, base64
+import web, time, copy, os, json, base64, urllib
 import MockGlobals
 from MockServer import MockServer, RequestMode
 import traceback
@@ -144,8 +144,12 @@ class RequestHandler:
         for key in resp:
             realkey = '-'.join((ck.capitalize() for ck in key.split('-')))
             self.request["responseheaders"][realkey] = resp[key]
-#             self.request["responseheaders"][realkey] = resp[key].replace(MockServer.server, MockServer.mock_address).replace(urllib.quote(MockServer.server,''), urllib.quote(MockServer.mock_address,''))
         
+#             self.request["responseheaders"][realkey] = resp[key].replace(MockServer.server, MockServer.mock_address).replace(urllib.quote(MockServer.server,''), urllib.quote(MockServer.mock_address,''))
+        if self.request["responseheaders"].get("Content-Location"):
+            self.request["responseheaders"]["Content-Location"] = self.request["responseheaders"]["Content-Location"].replace(MockServer.server, MockServer.mock_address).replace(urllib.quote(MockServer.server,''), urllib.quote(MockServer.mock_address,''))
+        if self.request["responseheaders"].get("Location"):
+            self.request["responseheaders"]["Location"] = self.request["responseheaders"]["Location"].replace(MockServer.server, MockServer.mock_address).replace(urllib.quote(MockServer.server,''), urllib.quote(MockServer.mock_address,''))
         if self.request["responseheaders"].has_key("Content-Length"):
             del self.request["responseheaders"]["Content-Length"]
         
@@ -237,9 +241,10 @@ class RequestHandler:
             
             #save records
             if MockServer.mode == "record":
-                if self.request["responseheaders"].has_key("Date"):
-                    del self.request["responseheaders"]["Date"]
-                MockServer.save_request(self.request)
+                request = copy.copy(self.request)
+                if request["responseheaders"].has_key("Date"):
+                    del request["responseheaders"]["Date"]
+                MockServer.save_request(request)
                 
             self._save_log()
             

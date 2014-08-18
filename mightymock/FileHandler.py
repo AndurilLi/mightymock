@@ -87,7 +87,7 @@ response = %s
                 return base64.b64encode(data), "base64"
     
     def __recover_format(self, data, datatype):
-        if datatype == "json" or "string":
+        if datatype in ["json","string"]:
             return data
         else:
             return base64.b64decode(data)
